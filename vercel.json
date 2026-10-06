@@ -2,6 +2,30 @@
   "version": 2,
   "routes": [
     {
+      "src": "/api/title/([^/]+)$",
+      "dest": "/api/index.js?id=$1&type=movie"
+    },
+    {
+      "src": "/src/title/([^/]+)$",
+      "dest": "/api/index.js?id=$1&type=movie"
+    },
+    {
+      "src": "/api/series/([^/]+)$",
+      "dest": "/api/index.js?id=$1&type=tv"
+    },
+    {
+      "src": "/src/series/([^/]+)$",
+      "dest": "/api/index.js?id=$1&type=tv"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
+      "src": "/src/(.*)",
+      "dest": "/api/index.js"
+    },
+    {
       "src": "/(.*)",
       "dest": "/api/index.js"
     }

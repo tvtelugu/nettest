@@ -1,9 +1,13 @@
 {
-  "name": "netmirror-vercel-provider",
-  "version": "1.0.0",
-  "description": "NetMirror streaming provider deployed on Vercel",
+  "name": "nettest-route-fixed",
+  "version": "1.1.0",
+  "private": true,
+  "description": "NetTest Vercel route compatibility package",
   "main": "api/index.js",
-  "dependencies": {
-    "node-fetch": "^2.6.7"
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node -e \"console.log('Deploy this project to Vercel')\""
   }
 }
