@@ -1,0 +1,9 @@
+{
+  "name": "netmirror-vercel-provider",
+  "version": "1.0.0",
+  "description": "NetMirror streaming provider deployed on Vercel",
+  "main": "api/index.js",
+  "dependencies": {
+    "node-fetch": "^2.6.7"
+  }
+}
