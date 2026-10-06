@@ -1,0 +1,727 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NetMirror API</title>
+    <meta name="description" content="REST API documentation for NetMirror.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            color: #111827;
+            background: #ffffff;
+            font-size: 16px;
+            font-weight: 450;
+            line-height: 1.7;
+        }
+
+        ::selection { background: #dbeafe; }
+
+        /* ---- Layout ---- */
+        .container {
+            max-width: 860px;
+            margin: 0 auto;
+            padding: 0 32px;
+        }
+
+        /* ---- Header ---- */
+        header {
+            padding: 64px 0 40px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        header h1 {
+            font-size: 28px;
+            font-weight: 800;
+            color: #111827;
+            letter-spacing: -0.02em;
+            margin-bottom: 8px;
+        }
+
+        header p {
+            font-size: 16px;
+            color: #4b5563;
+            line-height: 1.6;
+        }
+
+        /* ---- Section ---- */
+        .endpoints {
+            padding: 48px 0 32px;
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: #9ca3af;
+            margin-bottom: 24px;
+        }
+
+        /* ---- Endpoint Card ---- */
+        .endpoint {
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            background: #fff;
+            transition: box-shadow 0.15s;
+        }
+
+        .endpoint:hover {
+            box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+        }
+
+        .endpoint-head {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 24px;
+            cursor: pointer;
+            user-select: none;
+            border-radius: 10px;
+            transition: background 0.1s;
+        }
+
+        .endpoint-head:hover {
+            background: #f9fafb;
+        }
+
+        .method {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            font-weight: 600;
+            padding: 3px 10px;
+            border-radius: 5px;
+            flex-shrink: 0;
+        }
+
+        .method.get {
+            background: #eff6ff;
+            color: #2563eb;
+        }
+
+        .path {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 14px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .ep-summary {
+            margin-left: auto;
+            font-size: 14px;
+            color: #9ca3af;
+            white-space: nowrap;
+        }
+
+        .chevron {
+            flex-shrink: 0;
+            color: #d1d5db;
+            font-size: 12px;
+            transition: transform 0.2s;
+        }
+
+        .endpoint.open .chevron {
+            transform: rotate(180deg);
+        }
+
+        /* ---- Endpoint Body ---- */
+        .endpoint-body {
+            display: none;
+            padding: 0 24px 24px;
+            border-top: 1px solid #f3f4f6;
+        }
+
+        .endpoint.open .endpoint-body {
+            display: block;
+        }
+
+        .endpoint-body > p {
+            font-size: 15px;
+            color: #374151;
+            line-height: 1.7;
+            padding-top: 20px;
+            margin-bottom: 24px;
+        }
+
+        /* ---- Parameters ---- */
+        .params {
+            margin-bottom: 24px;
+        }
+
+        .params-heading {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+            margin-bottom: 12px;
+        }
+
+        .param-row {
+            display: grid;
+            grid-template-columns: 80px 72px 1fr;
+            gap: 12px;
+            align-items: baseline;
+            padding: 10px 0;
+            font-size: 14px;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .param-row:last-child {
+            border-bottom: none;
+        }
+
+        .param-name {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            font-weight: 600;
+            color: #111827;
+        }
+
+        .param-tag {
+            font-size: 11px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            color: #dc2626;
+        }
+
+        .param-tag.opt {
+            color: #9ca3af;
+        }
+
+        .param-desc {
+            color: #374151;
+            line-height: 1.5;
+        }
+
+        /* ---- Code Blocks ---- */
+        .response-head {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .response-head span {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #9ca3af;
+        }
+
+        .copy-btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 12px;
+            color: #9ca3af;
+            background: none;
+            border: 1px solid #e5e7eb;
+            padding: 3px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+
+        .copy-btn:hover {
+            color: #374151;
+            border-color: #d1d5db;
+        }
+
+        .copy-btn.done {
+            color: #16a34a;
+            border-color: #bbf7d0;
+        }
+
+        pre {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 18px 20px;
+            overflow-x: auto;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            line-height: 1.75;
+            color: #374151;
+            tab-size: 2;
+        }
+
+        /* JSON syntax */
+        .k { color: #1d4ed8; }
+        .s { color: #15803d; }
+        .n { color: #b45309; }
+        .b { color: #7c3aed; }
+
+        /* ---- Try Button ---- */
+        .try-btn {
+            font-family: 'Inter', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #2563eb;
+            background: #eff6ff;
+            border: 1px solid #dbeafe;
+            padding: 7px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: background 0.15s;
+        }
+
+        .try-btn:hover {
+            background: #dbeafe;
+        }
+
+        .try-btn:disabled {
+            opacity: 0.5;
+            cursor: default;
+        }
+
+        .live-box {
+            display: none;
+            margin-top: 16px;
+        }
+
+        .live-box.show {
+            display: block;
+        }
+
+        .live-label {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #16a34a;
+            margin-bottom: 8px;
+        }
+
+        .live-box pre {
+            max-height: 300px;
+            overflow-y: auto;
+            border-color: #d1fae5;
+            background: #f0fdf4;
+        }
+
+        /* ---- Footer ---- */
+        footer {
+            border-top: 1px solid #e5e7eb;
+            padding: 32px 0 64px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            color: #9ca3af;
+        }
+
+        footer code {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 12px;
+            background: #f3f4f6;
+            padding: 2px 7px;
+            border-radius: 4px;
+            color: #4b5563;
+        }
+
+        footer a {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 13px;
+            color: #9ca3af;
+            text-decoration: none;
+            transition: color 0.15s;
+        }
+
+        footer a:hover { color: #374151; }
+
+        /* ---- Responsive ---- */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 20px;
+            }
+
+            header {
+                padding: 40px 0 28px;
+            }
+
+            header h1 {
+                font-size: 24px;
+            }
+
+            header p {
+                font-size: 15px;
+            }
+
+            .endpoints {
+                padding: 32px 0 20px;
+            }
+
+            .endpoint-head {
+                padding: 16px 18px;
+                gap: 10px;
+            }
+
+            .path {
+                font-size: 13px;
+            }
+
+            .ep-summary {
+                display: none;
+            }
+
+            .endpoint-body {
+                padding: 0 18px 18px;
+            }
+
+            .endpoint-body > p {
+                font-size: 14px;
+                padding-top: 16px;
+                margin-bottom: 20px;
+            }
+
+            .param-row {
+                grid-template-columns: 72px 64px 1fr;
+                gap: 8px;
+                font-size: 13px;
+            }
+
+            pre {
+                padding: 14px 16px;
+                font-size: 12px;
+            }
+
+            footer {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+                padding: 24px 0 40px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            header h1 {
+                font-size: 22px;
+            }
+
+            .endpoint-head {
+                padding: 14px 14px;
+            }
+
+            .endpoint-body {
+                padding: 0 14px 14px;
+            }
+
+            .param-row {
+                grid-template-columns: 1fr;
+                gap: 2px;
+                padding: 8px 0;
+            }
+
+            .param-tag {
+                font-size: 10px;
+            }
+
+            pre {
+                padding: 12px 14px;
+                font-size: 11px;
+                border-radius: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+
+    <header>
+        <h1>NetMirror API</h1>
+        <p>Scraper and stream resolver for the Netflix catalog mirror.</p>
+    </header>
+
+    <section class="endpoints">
+        <div class="section-title">Endpoints</div>
+
+        <!-- /api/home -->
+        <div class="endpoint" id="ep-home">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/home</span>
+                <span class="ep-summary">Homepage categories</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Fetches the live homepage and parses every category row. Personalized rows like "Continue Watching" are filtered out.</p>
+                <div class="response-head">
+                    <span>Response</span>
+                    <button class="copy-btn" onclick="copy(this)">Copy</button>
+                </div>
+                <pre><code>{
+  <span class="k">"success"</span>: <span class="b">true</span>,
+  <span class="k">"categories"</span>: [
+    {
+      <span class="k">"category"</span>: <span class="s">"Popular Titles"</span>,
+      <span class="k">"itemsCount"</span>: <span class="n">35</span>,
+      <span class="k">"items"</span>: [
+        {
+          <span class="k">"id"</span>: <span class="s">"81288983"</span>,
+          <span class="k">"image"</span>: <span class="s">"https://imgcdn.kim/poster/341/81288983.jpg"</span>
+        }
+      ]
+    }
+  ]
+}</code></pre>
+                <button class="try-btn" onclick="tryIt(this, '/api/home')">Try it</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/series -->
+        <div class="endpoint" id="ep-series">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/series</span>
+                <span class="ep-summary">TV series listings</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Scrapes the TV series section. Same response shape as /api/home.</p>
+                <button class="try-btn" onclick="tryIt(this, '/api/series')">Try it</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/movies -->
+        <div class="endpoint" id="ep-movies">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/movies</span>
+                <span class="ep-summary">Movie listings</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Scrapes the movies section. Same response shape as /api/home.</p>
+                <button class="try-btn" onclick="tryIt(this, '/api/movies')">Try it</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/search -->
+        <div class="endpoint" id="ep-search">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/search</span>
+                <span class="ep-summary">Search titles</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Proxies a search query and returns matching title IDs with names.</p>
+                <div class="params">
+                    <div class="params-heading">Query parameters</div>
+                    <div class="param-row">
+                        <span class="param-name">q</span>
+                        <span class="param-tag">required</span>
+                        <span class="param-desc">Search keyword</span>
+                    </div>
+                </div>
+                <div class="response-head">
+                    <span>Response</span>
+                    <button class="copy-btn" onclick="copy(this)">Copy</button>
+                </div>
+                <pre><code>{
+  <span class="k">"success"</span>: <span class="b">true</span>,
+  <span class="k">"data"</span>: {
+    <span class="k">"searchResult"</span>: [
+      {
+        <span class="k">"id"</span>: <span class="s">"81288983"</span>,
+        <span class="k">"t"</span>: <span class="s">"The Diplomat"</span>
+      }
+    ]
+  }
+}</code></pre>
+                <button class="try-btn" onclick="tryIt(this, '/api/search?q=Diplomat')">Try /api/search?q=Diplomat</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/title/:id -->
+        <div class="endpoint" id="ep-title">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/title/:id</span>
+                <span class="ep-summary">Title metadata</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Returns full metadata for a title including name, year, rating, runtime, cast, genre, description, and season/episode list for series.</p>
+                <div class="params">
+                    <div class="params-heading">Path parameters</div>
+                    <div class="param-row">
+                        <span class="param-name">id</span>
+                        <span class="param-tag">required</span>
+                        <span class="param-desc">Netflix title ID</span>
+                    </div>
+                </div>
+                <div class="response-head">
+                    <span>Response</span>
+                    <button class="copy-btn" onclick="copy(this)">Copy</button>
+                </div>
+                <pre><code>{
+  <span class="k">"success"</span>: <span class="b">true</span>,
+  <span class="k">"data"</span>: {
+    <span class="k">"title"</span>: <span class="s">"The Diplomat"</span>,
+    <span class="k">"year"</span>: <span class="s">"2023"</span>,
+    <span class="k">"runtime"</span>: <span class="s">"3 Seasons"</span>,
+    <span class="k">"hdsd"</span>: <span class="s">"HD"</span>,
+    <span class="k">"type"</span>: <span class="s">"t"</span>,
+    <span class="k">"desc"</span>: <span class="s">"In the midst of an international crisis..."</span>,
+    <span class="k">"cast"</span>: <span class="s">"Keri Russell, Rufus Sewell..."</span>,
+    <span class="k">"genre"</span>: <span class="s">"Political TV Shows, TV Dramas"</span>,
+    <span class="k">"season"</span>: [
+      {
+        <span class="k">"id"</span>: <span class="s">"81946513"</span>,
+        <span class="k">"s"</span>: <span class="s">"Season 1"</span>
+      }
+    ]
+  }
+}</code></pre>
+                <button class="try-btn" onclick="tryIt(this, '/api/title/81288983')">Try /api/title/81288983</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/playlist/:id -->
+        <div class="endpoint" id="ep-playlist">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/playlist/:id</span>
+                <span class="ep-summary">Resolve HLS streams</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Acquires a play token and resolves it into playable HLS stream URLs at multiple quality levels.</p>
+                <div class="params">
+                    <div class="params-heading">Parameters</div>
+                    <div class="param-row">
+                        <span class="param-name">id</span>
+                        <span class="param-tag">required</span>
+                        <span class="param-desc">Video or episode ID (path)</span>
+                    </div>
+                    <div class="param-row">
+                        <span class="param-name">title</span>
+                        <span class="param-tag opt">optional</span>
+                        <span class="param-desc">Referrer title name (query)</span>
+                    </div>
+                </div>
+                <div class="response-head">
+                    <span>Response</span>
+                    <button class="copy-btn" onclick="copy(this)">Copy</button>
+                </div>
+                <pre><code>{
+  <span class="k">"success"</span>: <span class="b">true</span>,
+  <span class="k">"playlist"</span>: [
+    {
+      <span class="k">"title"</span>: <span class="s">"The Diplomat"</span>,
+      <span class="k">"sources"</span>: [
+        {
+          <span class="k">"file"</span>: <span class="s">"https://net52.cc/hls/81772103.m3u8?in=..."</span>,
+          <span class="k">"label"</span>: <span class="s">"Full HD"</span>,
+          <span class="k">"type"</span>: <span class="s">"application/vnd.apple.mpegurl"</span>
+        }
+      ]
+    }
+  ]
+}</code></pre>
+                <button class="try-btn" onclick="tryIt(this, '/api/playlist/81772103?title=The%20Diplomat')">Try /api/playlist/81772103</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/genres -->
+        <div class="endpoint" id="ep-genres">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/genres</span>
+                <span class="ep-summary">List genres</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Aggregates genre names from homepage categories and returns a deduplicated list with counts.</p>
+                <button class="try-btn" onclick="tryIt(this, '/api/genres')">Try it</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+        <!-- /api/genres/:name -->
+        <div class="endpoint" id="ep-genres-name">
+            <div class="endpoint-head" onclick="toggle(this)">
+                <span class="method get">GET</span>
+                <span class="path">/api/genres/:name</span>
+                <span class="ep-summary">Items by genre</span>
+                <span class="chevron">▾</span>
+            </div>
+            <div class="endpoint-body">
+                <p>Returns all unique items matching the given genre name.</p>
+                <div class="params">
+                    <div class="params-heading">Path parameters</div>
+                    <div class="param-row">
+                        <span class="param-name">name</span>
+                        <span class="param-tag">required</span>
+                        <span class="param-desc">Genre name, e.g. Drama</span>
+                    </div>
+                </div>
+                <button class="try-btn" onclick="tryIt(this, '/api/genres/Drama')">Try /api/genres/Drama</button>
+                <div class="live-box"><div class="live-label">Live response</div><pre><code></code></pre></div>
+            </div>
+        </div>
+
+    </section>
+
+    <footer>
+        <span>Auth loaded from <code>cookies.json</code></span>
+        <a href="/health">/health</a>
+    </footer>
+
+</div>
+
+<script>
+    function toggle(el) {
+        el.closest('.endpoint').classList.toggle('open');
+    }
+
+    function copy(btn) {
+        const pre = btn.closest('.endpoint-body').querySelector('pre');
+        navigator.clipboard.writeText(pre.textContent).then(function() {
+            btn.textContent = 'Copied';
+            btn.classList.add('done');
+            setTimeout(function() { btn.textContent = 'Copy'; btn.classList.remove('done'); }, 1200);
+        });
+    }
+
+    async function tryIt(btn, path) {
+        var body = btn.closest('.endpoint-body');
+        var box = body.querySelector('.live-box');
+        var code = box.querySelector('code');
+        btn.disabled = true;
+        btn.textContent = 'Loading…';
+        try {
+            var res = await fetch(path);
+            var data = await res.json();
+            code.textContent = JSON.stringify(data, null, 2);
+        } catch (e) {
+            code.textContent = 'Error: ' + e.message;
+        }
+        box.classList.add('show');
+        btn.disabled = false;
+        btn.textContent = 'Try again';
+    }
+</script>
+
+</body>
+</html>
