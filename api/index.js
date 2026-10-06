@@ -24,14 +24,14 @@ var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 console.log("[NetMirror] Initializing NetMirror provider");
 
 const TMDB_API_KEY = "439c478a771f35c05022f9feabcca01c";
-const NETMIRROR_BASE = "https://net77.cc/";
-const SHARED_USER_AGENT = "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1";
+const NETMIRROR_BASE = "https://net77.cc";
+const SHARED_USER_AGENT = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
 
 const BASE_HEADERS = {
   "X-Requested-With": "XMLHttpRequest",
   "User-Agent": SHARED_USER_AGENT,
   "Accept": "application/json, text/plain, */*",
-  "Accept-Language": "en-US,en;q=0.5",
+  "Accept-Language": "en-US,en;q=0.9",
   "Connection": "keep-alive"
 };
 
@@ -42,7 +42,7 @@ const COOKIE_EXPIRY = 54e6;
 function makeRequest(url, options = {}) {
   return fetch(url, __spreadProps(__spreadValues({}, options), {
     headers: __spreadValues(__spreadValues({}, BASE_HEADERS), options.headers),
-    timeout: 10000
+    timeout: 12000
   })).then(function(response) {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}: ${response.statusText}`);
@@ -58,7 +58,6 @@ function getUnixTime() {
 function bypass() {
   const now = Date.now();
   if (globalCookie && cookieTimestamp && now - cookieTimestamp < COOKIE_EXPIRY) {
-    console.log("[NetMirror] Using cached authentication cookie");
     return Promise.resolve(globalCookie);
   }
   console.log("[NetMirror] Bypassing authentication...");
@@ -68,11 +67,13 @@ function bypass() {
     }
     return makeRequest(`${NETMIRROR_BASE}/tv/p.php`, {
       method: "POST",
-      headers: BASE_HEADERS
+      headers: __spreadProps(__spreadValues({}, BASE_HEADERS), {
+        "Content-Type": "application/x-www-form-urlencoded"
+      })
     }).then(function(response) {
       const setCookieHeader = response.headers.get("set-cookie");
       let extractedCookie = null;
-      if (setCookieHeader && (typeof setCookieHeader === "string" || Array.isArray(setCookieHeader))) {
+      if (setCookieHeader) {
         const cookieString = Array.isArray(setCookieHeader) ? setCookieHeader.join("; ") : setCookieHeader;
         const cookieMatch = cookieString.match(/t_hash_t=([^;]+)/);
         if (cookieMatch) {
@@ -80,15 +81,14 @@ function bypass() {
         }
       }
       return response.text().then(function(responseText) {
-        if (!responseText.includes('"r":"n"')) {
-          console.log(`[NetMirror] Bypass attempt ${attempts + 1} failed, retrying...`);
-          return attemptBypass(attempts + 1);
-        }
         if (extractedCookie) {
           globalCookie = extractedCookie;
           cookieTimestamp = Date.now();
           console.log("[NetMirror] Authentication successful");
           return globalCookie;
+        }
+        if (attempts < 4) {
+          return attemptBypass(attempts + 1);
         }
         throw new Error("Failed to extract authentication cookie");
       });
@@ -347,32 +347,6 @@ function getStreamingLinks(contentId, title, platform) {
   });
 }
 
-function findEpisodeId(episodes, season, episode) {
-  if (!episodes || episodes.length === 0) {
-    console.log("[NetMirror] No episodes found in content data");
-    return null;
-  }
-  const validEpisodes = episodes.filter((ep) => ep !== null);
-  console.log(`[NetMirror] Found ${validEpisodes.length} valid episodes`);
-  const targetEpisode = validEpisodes.find((ep) => {
-    let epSeason, epNumber;
-    if (ep.s && ep.ep) {
-      epSeason = parseInt(ep.s.replace("S", ""));
-      epNumber = parseInt(ep.ep.replace("E", ""));
-    } else if (ep.season && ep.episode) {
-      epSeason = parseInt(ep.season);
-      epNumber = parseInt(ep.episode);
-    } else if (ep.season_number && ep.episode_number) {
-      epSeason = parseInt(ep.season_number);
-      epNumber = parseInt(ep.episode_number);
-    } else {
-      return false;
-    }
-    return epSeason === season && epNumber === episode;
-  });
-  return targetEpisode ? targetEpisode.id : null;
-}
-
 function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = null) {
   console.log(`[NetMirror] Fetching streams for TMDB ID: ${tmdbId}, Type: ${mediaType}${seasonNum ? `, S${seasonNum}E${episodeNum}` : ""}`);
   const tmdbUrl = `https://api.themoviedb.org/3/${mediaType === "tv" ? "tv" : "movie"}/${tmdbId}?api_key=${TMDB_API_KEY}`;
@@ -388,26 +362,6 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
     console.log(`[NetMirror] TMDB Info: "${title}" (${year})`);
     let platforms = ["netflix", "primevideo", "disney"];
 
-    function calculateSimilarity(str1, str2) {
-      const s1 = str1.toLowerCase().replace(/[^a-z0-9]/g, "");
-      const s2 = str2.toLowerCase().replace(/[^a-z0-9]/g, "");
-      if (s1 === s2) return 1;
-      if (s1.includes(s2) || s2.includes(s1)) return 0.85;
-      return 0;
-    }
-
-    function filterRelevantResults(searchResults, query) {
-      const filtered = searchResults.filter((result) => {
-        const similarity = calculateSimilarity(result.title, query);
-        return similarity >= 0.4;
-      });
-      return filtered.sort((a, b) => {
-        const simA = calculateSimilarity(a.title, query);
-        const simB = calculateSimilarity(b.title, query);
-        return simB - simA;
-      });
-    }
-
     function tryPlatform(platformIndex) {
       if (platformIndex >= platforms.length) {
         console.log("[NetMirror] No content found on any platform");
@@ -416,25 +370,13 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
       const platform = platforms[platformIndex];
       console.log(`[NetMirror] Trying platform: ${platform}`);
 
-      function trySearch(withYear) {
-        const cleanTitle = title.replace(/[^\w\s]/gi, "");
-        const searchQuery = withYear ? `${cleanTitle} ${year}` : cleanTitle;
+      function trySearch(searchQuery) {
         console.log(`[NetMirror] Searching for: "${searchQuery}"`);
         return searchContent(searchQuery, platform).then(function(searchResults) {
           if (!searchResults || searchResults.length === 0) {
-            if (!withYear && year) {
-              return trySearch(true);
-            }
             return null;
           }
-          const relevantResults = filterRelevantResults(searchResults, title);
-          if (relevantResults.length === 0) {
-            if (!withYear && year) {
-              return trySearch(true);
-            }
-            return null;
-          }
-          const selectedContent = relevantResults[0];
+          const selectedContent = searchResults[0];
           return loadContent(selectedContent.id, platform).then(function(contentData) {
             let targetContentId = selectedContent.id;
             let episodeData = null;
@@ -498,8 +440,8 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
                 const isNfOrPv = lowerPlatform === "netflix" || lowerPlatform === "primevideo";
                 const streamHeaders = {
                   "Accept": "application/vnd.apple.mpegurl, video/mp4, */*",
-                  "Origin": "https://net77.cc",
-                  "Referer": isNfOrPv ? "https://net77.cc/" : "https://net77.cc/tv/home",
+                  "Origin": `${NETMIRROR_BASE}`,
+                  "Referer": isNfOrPv ? `${NETMIRROR_BASE}/` : `${NETMIRROR_BASE}/tv/home`,
                   "Cookie": "hd=on",
                   "User-Agent": SHARED_USER_AGENT
                 };
@@ -524,13 +466,15 @@ function getStreams(tmdbId, mediaType = "movie", seasonNum = null, episodeNum = 
           });
         });
       }
-      return trySearch(false).then(function(result) {
-        if (result) {
-          return result;
-        } else {
+
+      const cleanTitle = title.replace(/[^\w\s]/gi, "");
+      return trySearch(cleanTitle).then(function(result) {
+        if (result) return result;
+        return trySearch(`${cleanTitle} ${year}`).then(function(resultWithYear) {
+          if (resultWithYear) return resultWithYear;
           return tryPlatform(platformIndex + 1);
-        }
-      }).catch(function(error) {
+        });
+      }).catch(function() {
         return tryPlatform(platformIndex + 1);
       });
     }
@@ -584,7 +528,7 @@ module.exports = handler;
 module.exports.getStreams = getStreams;
 
 if (typeof module !== "undefined" && module.exports) {
-  // CommonJS export already declared above
+  // Module export
 } else {
   global.getStreams = getStreams;
 }
